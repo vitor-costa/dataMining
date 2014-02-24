@@ -1,11 +1,40 @@
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Element;
  
 public class LoadPage {
 	private static boolean copyHtml = false;
-	private final static int MAX_PAGE = 23;
+	private final static int MAX_PAGE = 2;
 	private final static String URL_BITCOIN = "http://www.globo.com/busca/?q=bitcoin";
+	
+	/* Pega o arquivo CSV do link e o baixa
+    URL website = new URL("https://blockchain.info/pt/charts/trade-volume?showDataPoints=false&timespan=&show_header=true&daysAverageString=1&scale=0&format=csv&address=");
+    ReadableByteChannel rbc = Channels.newChannel(website.openStream());
+    FileOutputStream fos = new FileOutputStream("information.html");
+    fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+    */
+	
+	public static void extractText(String url, BufferedWriter file) {
+		try {
+			org.jsoup.nodes.Document doc; // = Jsoup.connect(url).get();
+			doc = Jsoup.connect(url).get();
+			org.jsoup.select.Elements titles = doc.select(".materia-conteudo");
+			
+			for(Element e: titles){
+				System.out.println("text: " +e.text());
+				System.out.println("html: "+ e.html());
+				file.write(e.text());
+	            file.newLine();
+	            file.newLine();
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+	}
 	
     public void getPage(URL url, File file) throws IOException {
     	int pageNumber = 1;
@@ -81,21 +110,22 @@ public class LoadPage {
             System.out.println(inputLine);
             url = new URL(inputLine);
             try{
-	            link = new BufferedReader(new InputStreamReader(url.openStream()));
-	            String link_text;
-	            while((link_text = link.readLine()) != null) {
-	            	if(link_text.contains("materia-conteudo entry-content")) {
-		            	activatePageCopying();
-		            }
-		            // Grava pagina no arquivo
-		            if(canCopyPage()) {
-			            out.write(link_text);
-			            out.newLine();
-		            }
-		            if(link_text.contains("<!-- google_ad_section_end -->")) {
-		            	deactivatePageCopying();
-		            }
-	            }
+            	extractText(inputLine, out);
+//	            link = new BufferedReader(new InputStreamReader(url.openStream()));
+//	            String link_text;
+//	            while((link_text = link.readLine()) != null) {
+//	            	if(link_text.contains("materia-conteudo entry-content")) {
+//		            	activatePageCopying();
+//		            }
+//		             Grava pagina no arquivo
+//		            if(canCopyPage()) {
+//			            out.write(link_text);
+//			            out.newLine();
+//		            }
+//		            if(link_text.contains("<!-- google_ad_section_end -->")) {
+//		            	deactivatePageCopying();
+//		            }
+//	            }
 	            
             } catch(Exception e) {
             	System.out.println("Pagina com erro.");
