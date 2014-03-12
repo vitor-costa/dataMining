@@ -1,14 +1,19 @@
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map.Entry;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
  
 public class LoadPage {
 	private static boolean copyHtml = false;
-	private final static int MAX_PAGE = 2;
+	private final static int MAX_PAGE = 5;
 	private final static String URL_BITCOIN = "http://www.globo.com/busca/?q=bitcoin";
+	private static HashMap<String, Event> events;
+	private static HashMap<String, String> quotations;
 	
 	/* Pega o arquivo CSV do link e o baixa
     URL website = new URL("https://blockchain.info/pt/charts/trade-volume?showDataPoints=false&timespan=&show_header=true&daysAverageString=1&scale=0&format=csv&address=");
@@ -17,23 +22,38 @@ public class LoadPage {
     fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
     */
 	
-	public static void extractText(String url, BufferedWriter file) {
+	public static Event extractText(String url, BufferedWriter file) {
+		Event event = null;
+		String articleText = null;
+		String date = null;
 		try {
 			org.jsoup.nodes.Document doc; // = Jsoup.connect(url).get();
 			doc = Jsoup.connect(url).get();
 			org.jsoup.select.Elements titles = doc.select(".materia-conteudo");
+			org.jsoup.select.Elements dateFromText = doc.select(".published");
 			
 			for(Element e: titles){
-				System.out.println("text: " +e.text());
-				System.out.println("html: "+ e.html());
+				//System.out.println("text: " +e.text());
+				//System.out.println("html: "+ e.html());
 				file.write(e.text());
 	            file.newLine();
 	            file.newLine();
+	            articleText = e.text();
 			}
+			for(Element e: dateFromText) {
+				date = e.text();
+			}
+			
+			System.out.println(">>>>>>>>>>>>>>>>>>>>date:" + date);
+			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} 
+		if(articleText != null && date != null) {
+			event = new Event(date, articleText);
+		}
+		return event;
 	}
 	
     public void getPage(URL url, File file) throws IOException {
@@ -79,29 +99,64 @@ public class LoadPage {
     }
  
     public static void main(String[] args) {
+    	events = new HashMap<String, Event>();
+    	quotations = new HashMap<String, String>();
+    	Entry currentEvent = null;
         URL url = null;
         File file = new File("./page.html");
         File text = new File("./text.html");
+        //File quotationsFile = new File("./quotations.csv");
         try {
+        	
             url = new URL(URL_BITCOIN);
             new LoadPage().getPage(url, file);
             File pages = new File("./page.html");
             getText(pages, text);
+            extractQuotations();
         } catch (MalformedURLException e) {
             e.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
         }
+        upgradeQuotations();
+        System.out.println(events.size());
+        System.out.println(quotations.size());
+        Iterator<Entry<String, Event>> iterator = events.entrySet().iterator();
+        while(iterator.hasNext()) {
+        	currentEvent = iterator.next();
+        	System.out.println("date: " + ((String) currentEvent.getKey()).substring(0, 10));
+        	System.out.println("quotation: " + ((Event) currentEvent.getValue()).getQuotation());
+        	System.out.println("---");
+        }
     }
 
+    static void upgradeQuotations() {
+    	Iterator<Entry<String, Event>> iterator = events.entrySet().iterator();
+    	Entry currentEvent = null;
+    	Entry currentQuotation = null;
+    	while(iterator.hasNext()) {
+    		Iterator<Entry<String, String>> quotationIterator = quotations.entrySet().iterator();
+    		currentEvent = iterator.next();
+    		while(quotationIterator.hasNext()) {
+    			currentQuotation = quotationIterator.next();
+    			System.out.println(((String) currentQuotation.getKey()).substring(0, 10));
+    			System.out.println(((String) currentEvent.getKey()).substring(0, 10));
+    			if(((String) currentQuotation.getKey()).substring(0, 10).equals(((String) currentEvent.getKey()).substring(0, 10))) {
+    				((Event) currentEvent.getValue()).setQuotation((String) currentQuotation.getValue());
+    				break;
+    			}
+    		}
+    	}
+    }
+    
 	private static void getText(File pages, File text) throws IOException {
         BufferedReader in = new BufferedReader(new FileReader(pages));
         BufferedReader link = null;
         URL url = null;
- 
-         BufferedWriter out = new BufferedWriter(new FileWriter(text));
- 
+        BufferedWriter out = new BufferedWriter(new FileWriter(text));
         String inputLine;
+        Event eventTemp = null;
+        
         while ((inputLine = in.readLine()) != null) {
             // Imprime página no console
             System.out.println(inputLine);
@@ -110,7 +165,10 @@ public class LoadPage {
             System.out.println(inputLine);
             url = new URL(inputLine);
             try{
-            	extractText(inputLine, out);
+            	eventTemp = extractText(inputLine, out);
+            	if(eventTemp != null) {
+            		events.put(eventTemp.getDate(), eventTemp);
+            	}
 //	            link = new BufferedReader(new InputStreamReader(url.openStream()));
 //	            String link_text;
 //	            while((link_text = link.readLine()) != null) {
@@ -133,9 +191,47 @@ public class LoadPage {
             // Para ter certeza que bloqueou
             deactivatePageCopying();
         }
- 
+        
         in.close();
         out.flush();
         out.close();
 	}
+	
+	public static void extractQuotations() {
+		 
+		String csvFile = "./quotations.csv";
+		BufferedReader br = null;
+		String line = "";
+		String cvsSplitBy = ",";
+	 
+		try {
+	 
+			br = new BufferedReader(new FileReader(csvFile));
+			while ((line = br.readLine()) != null) {
+	 
+			        // use comma as separator
+				String[] data = line.split(cvsSplitBy);
+	 
+				System.out.println("Country [code= " + data[0] 
+	                                 + " , name=" + data[1] + "]");
+				quotations.put(data[0],data[1]);
+	 
+			}
+	 
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if (br != null) {
+				try {
+					br.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	 
+		System.out.println("Done");
+	  }
 }
