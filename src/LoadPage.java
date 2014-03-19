@@ -22,6 +22,7 @@ public class LoadPage {
     fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
     */
 	
+	
 	public static Event extractText(String url, BufferedWriter file) {
 		Event event = null;
 		String articleText = null;
@@ -149,6 +150,32 @@ public class LoadPage {
     	}
     }
     
+    static void upgradeVariations() {
+    	Iterator<Entry<String, Event>> iterator = events.entrySet().iterator();
+    	Entry currentEvent = null;
+    	Entry currentQuotation = null;
+    	while(iterator.hasNext()) {
+    		Iterator<Entry<String, String>> quotationIterator = quotations.entrySet().iterator();
+    		currentEvent = iterator.next();
+    		while(quotationIterator.hasNext()) {
+    			currentQuotation = quotationIterator.next();
+    			System.out.println(((String) currentQuotation.getKey()).substring(0, 10));
+    			System.out.println(((String) currentEvent.getKey()).substring(0, 10));
+    			if(((String) currentQuotation.getKey()).substring(0, 10).equals(((String) currentEvent.getKey()).substring(0, 10))) {
+    				for(int i = 0; i < 30; i++) {
+    					if(quotationIterator.hasNext()) {
+    						currentQuotation = quotationIterator.next();
+    					}
+    				}
+    				String[] val = ((String) currentQuotation.getValue()).split(".");
+    				String[] quo = ((Event) currentEvent.getValue()).getQuotation().split(".");
+    				((Event) currentEvent.getValue()).setVariation(Integer.getInteger(val[0]) - Integer.getInteger(quo[0]));
+    				break;
+    			}
+    		}
+    	}
+    }
+    
 	private static void getText(File pages, File text) throws IOException {
         BufferedReader in = new BufferedReader(new FileReader(pages));
         BufferedReader link = null;
@@ -234,4 +261,55 @@ public class LoadPage {
 	 
 		System.out.println("Done");
 	  }
+	
+	public void updateFeelings() {
+		Iterator<Entry<String, Event>> iterator = events.entrySet().iterator();
+		Entry currentEvent = null;
+		
+		while(iterator.hasNext()) {
+    		currentEvent = iterator.next();
+    		getFeeling((Event) currentEvent.getValue());
+    	}		
+	}
+	
+	public void getFeeling(Event event) {
+		String text;
+		String[] words;
+		int positiveCount = 0;
+		int negativeCount = 0;
+		
+		text = event.getArticleText();
+		
+		words = text.split(" ");
+		
+		for(int i = 0; i < words.length; i++) {
+			int result = analyzeWord(words[i]);
+			if(result == 1) {
+				positiveCount++;
+			} else if(result == -1) {
+				negativeCount++;
+			}
+		}
+		
+		if(negativeCount > positiveCount) {
+			event.setFeeling("Negative");
+		} else if(positiveCount > negativeCount) {
+			event.setFeeling("Positive");
+		} else {
+			event.setFeeling("Neutral");
+		}
+		
+	}
+	
+	public int analyzeWord(String word) {
+		int feeling = 0;
+		
+		if(word.equals("condenou")) {
+			feeling = -1;
+		} else if(word.equals("milhão")) {
+			feeling = 1;
+		}
+		
+		return feeling;
+	}
 }

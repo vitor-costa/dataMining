@@ -4,6 +4,7 @@ public class Event {
 	private String articleText;
 	private String quotation;
 	private String feeling;
+	private double variation;
 	
 	public Event(String date, String articleText) {
 		this.date = date;
@@ -33,6 +34,14 @@ public class Event {
 	}
 	public void setFeeling(String feeling) {
 		this.feeling = feeling;
+	}
+
+	public double getVariation() {
+		return variation;
+	}
+	
+	public void setVariation(double variation) {
+		this.variation = variation;
 	}
 	
 	
