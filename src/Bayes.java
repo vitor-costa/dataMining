@@ -81,15 +81,15 @@ public class Bayes {
 	public void getProbabilities(HashMap<String, Event> events) {
 		Iterator<Entry<String, Event>> iterator = events.entrySet().iterator();
 		Entry currentEvent = null;
-		int eventCount = events.size();
-		int positiveCount = 0;
-		int negativeCount = 0;
-		int upCount = 0;
-		int downCount = 0;
-		int posUpCount = 0;
-		int negUpCount = 0;
-		int posDownCount = 0;
-		int negDownCount = 0;
+		double eventCount = events.size();
+		double positiveCount = 0;
+		double negativeCount = 0;
+		double upCount = 0;
+		double downCount = 0;
+		double posUpCount = 0;
+		double negUpCount = 0;
+		double posDownCount = 0;
+		double negDownCount = 0;
 		
 		while(iterator.hasNext()) {
     		currentEvent = iterator.next();
@@ -119,6 +119,8 @@ public class Bayes {
     			}
     		}
     	}
+		System.out.println(positiveCount);
+		System.out.println(eventCount);
 		
 		setpDown(downCount/eventCount);
 		setpNeg(negativeCount/eventCount);
@@ -128,6 +130,9 @@ public class Bayes {
 		setpNegUp(negUpCount/upCount);
 		setpPosDown(posDownCount/downCount);
 		setpPosUp(posUpCount/upCount);
+		
+		System.out.println("<" + getpDown() + "," + getpNeg()+ "," + getpPos()+ "," + getpUp()+ "," + getpNegDown()
+				+ "," + getpNegUp()+ "," + getpPosDown()+ "," + getpPosUp() + ">");
 	}
 	
 	public double probabilityDownGivenPositive() {
@@ -138,11 +143,11 @@ public class Bayes {
 		return probabilityAGivenB(getpPosUp(), getpUp(), getpPos());
 	}
 	
-	public double probabilityDownNegative() {
+	public double probabilityDownGivenNegative() {
 		return probabilityAGivenB(getpNegDown(), getpDown(), getpNeg());
 	}
 	
-	public double probabilityUpNegative() {
+	public double probabilityUpGivenNegative() {
 		return probabilityAGivenB(getpNegUp(), getpUp(), getpNeg());
 	}
 	

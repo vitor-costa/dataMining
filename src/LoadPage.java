@@ -2,6 +2,7 @@ import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
@@ -10,10 +11,12 @@ import org.jsoup.nodes.Element;
  
 public class LoadPage {
 	private static boolean copyHtml = false;
-	private final static int MAX_PAGE = 5;
+	private final static int MAX_PAGE = 32;
 	private final static String URL_BITCOIN = "http://www.globo.com/busca/?q=bitcoin";
 	private static HashMap<String, Event> events;
 	private static HashMap<String, String> quotations;
+	private static HashSet<String> positiveWords;
+	private static HashSet<String> negativeWords;
 	
 	/* Pega o arquivo CSV do link e o baixa
     URL website = new URL("https://blockchain.info/pt/charts/trade-volume?showDataPoints=false&timespan=&show_header=true&daysAverageString=1&scale=0&format=csv&address=");
@@ -102,10 +105,22 @@ public class LoadPage {
     public static void main(String[] args) {
     	events = new HashMap<String, Event>();
     	quotations = new HashMap<String, String>();
+    	FeelingsAnalyzer fa = new FeelingsAnalyzer();
+    	fa.feedPositiveWords();
+    	fa.feedNegativeWords();
+    	positiveWords = fa.getPositiveHash();
+    	negativeWords = fa.getNegativeHash();
     	Entry currentEvent = null;
         URL url = null;
         File file = new File("./page.html");
         File text = new File("./text.html");
+        File eventFile = new File("./events.txt");
+        BufferedWriter writeInEventsFile = null;
+        try {
+			writeInEventsFile = new BufferedWriter(new FileWriter(eventFile));
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
         //File quotationsFile = new File("./quotations.csv");
         try {
         	
@@ -120,14 +135,72 @@ public class LoadPage {
             e.printStackTrace();
         }
         upgradeQuotations();
+        upgradeVariations();
+        
+        updateFeelings();
+        
+        Bayes bayes = new Bayes();
+        bayes.getProbabilities(events);
+        
+        String textoPrevisao = "Uma invasão na corretora “Mt. Gox”, a maior que realiza compra e venda"
+        		+ " de moedas do Bitcoin (BTC), fez o mercado da moeda virtual despencar e seu valor "
+        		+ "cair de US$ 17 a US$ 0,01 na Mt. Gox. O problema aconteceu depois que um cliente da "
+        		+ "Mt. Gox teve sua conta invadida e vários outros usuários começaram a vender rapidamente "
+        		+ "suas moedas. A Mt. Gox vai reverter as transações e acredita que o valor da moeda deve "
+        		+ "voltar aos U$ 17. O banco de dados da Mt. Gox foi comprometido, segundo a corretora,"
+        		+ " porque um auditor que tinha acesso teve seu computador comprometido. Com isso, hackers"
+        		+ " tiveram acesso às informações como endereço de e-mail e a senha codificada em hash. "
+        		+ "A Mt. Gox informou que as senhas em risco são somente as de contas que não são acessadas"
+        		+ " há mais de dois meses, porque as novas foram protegidas com o recurso conhecido como"
+        		+ " “salt”, que dificulta a obtenção da senha. Usuários da Mt. Gox estão sendo alertados"
+        		+ " para não realizar nenhum tipo de download que chegue em seus e-mails. No entanto, já "
+        		+ "que existe o risco de hackers realizarem ataques. Embora o valor dos Bitcoins na Mt. "
+        		+ "Gox tenha chegado a 0,01 (um centavo de dólar), o valor médio do dia ficou em US$ 14.";
+        
+        Event previsao = new Event("24/03/2014", textoPrevisao);
+        
+        getFeeling(previsao);
+        
+        System.out.println("sentimento previsao:" + previsao.getFeeling());
+
+        double res;
+        res = bayes.probabilityUpGivenPositive();
+        System.out.println("probability up given positive:" + res);
+        res = bayes.probabilityDownGivenNegative();
+        System.out.println("probability down given negative:" + res);
+        res = bayes.probabilityUpGivenNegative();
+        System.out.println("probability up given negative:" + res);
+        res = bayes.probabilityDownGivenPositive();
+        System.out.println("probability down given positive:" + res);
+        
         System.out.println(events.size());
         System.out.println(quotations.size());
         Iterator<Entry<String, Event>> iterator = events.entrySet().iterator();
         while(iterator.hasNext()) {
         	currentEvent = iterator.next();
-        	System.out.println("date: " + ((String) currentEvent.getKey()).substring(0, 10));
-        	System.out.println("quotation: " + ((Event) currentEvent.getValue()).getQuotation());
-        	System.out.println("---");
+        	try {
+				writeInEventsFile.write("date: " + ((String) currentEvent.getKey()).substring(0, 10));
+				writeInEventsFile.newLine();
+				writeInEventsFile.write("quotation: " + ((Event) currentEvent.getValue()).getQuotation());
+				writeInEventsFile.newLine();
+				writeInEventsFile.write("variation(1 month ahead): " + ((Event) currentEvent.getValue()).getVariation());
+				writeInEventsFile.newLine();
+				writeInEventsFile.write("feeling: " + ((Event) currentEvent.getValue()).getFeeling());
+				writeInEventsFile.newLine();
+				writeInEventsFile.write("text: " + ((Event) currentEvent.getValue()).getArticleText());
+				writeInEventsFile.newLine();
+				writeInEventsFile.write("---");
+				writeInEventsFile.newLine();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+        	
+//        	System.out.println("date: " + ((String) currentEvent.getKey()).substring(0, 10));
+//        	System.out.println("quotation: " + ((Event) currentEvent.getValue()).getQuotation());
+//        	System.out.println("variation(1 month ahead): " + ((Event) currentEvent.getValue()).getVariation());
+//        	System.out.println("feeling: " + ((Event) currentEvent.getValue()).getFeeling());
+//        	System.out.println("text: " + ((Event) currentEvent.getValue()).getArticleText());
+//        	System.out.println("---");
         }
     }
 
@@ -167,9 +240,14 @@ public class LoadPage {
     						currentQuotation = quotationIterator.next();
     					}
     				}
-    				String[] val = ((String) currentQuotation.getValue()).split(".");
-    				String[] quo = ((Event) currentEvent.getValue()).getQuotation().split(".");
-    				((Event) currentEvent.getValue()).setVariation(Integer.getInteger(val[0]) - Integer.getInteger(quo[0]));
+    				String val = ((String) currentQuotation.getValue()).substring(0, ((String) currentQuotation.getValue()).indexOf("."));
+    				System.out.println("---" + val);
+    				String quo = ((Event) currentEvent.getValue()).getQuotation().substring(0, ((Event) currentEvent.getValue()).getQuotation().indexOf("."));
+    				System.out.println("---" + quo);
+    				int nextQuo = Integer.parseInt(val);
+    				int previousQuo = Integer.parseInt(quo);
+    				System.out.println("---" + previousQuo + "->" + nextQuo);
+    				((Event) currentEvent.getValue()).setVariation(nextQuo - previousQuo);
     				break;
     			}
     		}
@@ -262,7 +340,7 @@ public class LoadPage {
 		System.out.println("Done");
 	  }
 	
-	public void updateFeelings() {
+	public static void updateFeelings() {
 		Iterator<Entry<String, Event>> iterator = events.entrySet().iterator();
 		Entry currentEvent = null;
 		
@@ -272,7 +350,7 @@ public class LoadPage {
     	}		
 	}
 	
-	public void getFeeling(Event event) {
+	public static void getFeeling(Event event) {
 		String text;
 		String[] words;
 		int positiveCount = 0;
@@ -301,12 +379,13 @@ public class LoadPage {
 		
 	}
 	
-	public int analyzeWord(String word) {
+	public static int analyzeWord(String word) {
 		int feeling = 0;
 		
-		if(word.equals("condenou")) {
+		
+		if(negativeWords.contains(word)) {
 			feeling = -1;
-		} else if(word.equals("milhão")) {
+		} else if(positiveWords.contains(word)) {
 			feeling = 1;
 		}
 		
