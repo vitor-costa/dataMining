@@ -195,6 +195,10 @@ public class LoadPage {
 				e.printStackTrace();
 			}
         }
+        
+        //Association
+        Association association = new Association(events);
+        association.run();
     }
 
     static void upgradeQuotations() {
@@ -363,6 +367,18 @@ public class LoadPage {
 			event.setFeeling("Positive");
 		} else {
 			event.setFeeling("Neutral");
+		}
+		
+		if(feelingCount > 10) {
+			event.setFeelingScale("Negative_2");
+		} else if(feelingCount > 0) {
+			event.setFeelingScale("Negative_1");
+		} else if(feelingCount < -10) {
+			event.setFeelingScale("Positive_2");
+		} else if(feelingCount < 0) {
+			event.setFeelingScale("Positive_1");
+		} else {
+			event.setFeelingScale("Neutral");
 		}
 	}
 	

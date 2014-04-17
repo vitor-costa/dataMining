@@ -5,6 +5,16 @@ public class Event {
 	private String quotation;
 	private String feeling;
 	private double variation;
+	private String feelingScale;
+	
+	public String getFeelingScale() {
+		return feelingScale;
+	}
+
+	public void setFeelingScale(String feelingScale) {
+		this.feelingScale = feelingScale;
+	}
+
 	
 	public Event(String date, String articleText) {
 		this.date = date;
