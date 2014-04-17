@@ -110,7 +110,7 @@ public class LoadPage {
     	fa.feedNegativeWords();
     	positiveWords = fa.getPositiveHash();
     	negativeWords = fa.getNegativeHash();
-    	Entry currentEvent = null;
+    	Entry<String, Event> currentEvent = null;
         URL url = null;
         File file = new File("./page.html");
         File text = new File("./text.html");
@@ -194,20 +194,13 @@ public class LoadPage {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-        	
-//        	System.out.println("date: " + ((String) currentEvent.getKey()).substring(0, 10));
-//        	System.out.println("quotation: " + ((Event) currentEvent.getValue()).getQuotation());
-//        	System.out.println("variation(1 month ahead): " + ((Event) currentEvent.getValue()).getVariation());
-//        	System.out.println("feeling: " + ((Event) currentEvent.getValue()).getFeeling());
-//        	System.out.println("text: " + ((Event) currentEvent.getValue()).getArticleText());
-//        	System.out.println("---");
         }
     }
 
     static void upgradeQuotations() {
     	Iterator<Entry<String, Event>> iterator = events.entrySet().iterator();
-    	Entry currentEvent = null;
-    	Entry currentQuotation = null;
+    	Entry<String, Event> currentEvent = null;
+    	Entry<String, String> currentQuotation = null;
     	while(iterator.hasNext()) {
     		Iterator<Entry<String, String>> quotationIterator = quotations.entrySet().iterator();
     		currentEvent = iterator.next();
@@ -225,8 +218,8 @@ public class LoadPage {
     
     static void upgradeVariations() {
     	Iterator<Entry<String, Event>> iterator = events.entrySet().iterator();
-    	Entry currentEvent = null;
-    	Entry currentQuotation = null;
+    	Entry<String, Event> currentEvent = null;
+    	Entry<String, String> currentQuotation = null;
     	while(iterator.hasNext()) {
     		Iterator<Entry<String, String>> quotationIterator = quotations.entrySet().iterator();
     		currentEvent = iterator.next();
@@ -342,7 +335,7 @@ public class LoadPage {
 	
 	public static void updateFeelings() {
 		Iterator<Entry<String, Event>> iterator = events.entrySet().iterator();
-		Entry currentEvent = null;
+		Entry<String, Event> currentEvent = null;
 		
 		while(iterator.hasNext()) {
     		currentEvent = iterator.next();
@@ -353,8 +346,7 @@ public class LoadPage {
 	public static void getFeeling(Event event) {
 		String text;
 		String[] words;
-		int positiveCount = 0;
-		int negativeCount = 0;
+		int feelingCount = 0;
 		
 		text = event.getArticleText();
 		
@@ -362,21 +354,16 @@ public class LoadPage {
 		
 		for(int i = 0; i < words.length; i++) {
 			int result = analyzeWord(words[i]);
-			if(result == 1) {
-				positiveCount++;
-			} else if(result == -1) {
-				negativeCount++;
-			}
+			feelingCount += result;
 		}
 		
-		if(negativeCount > positiveCount) {
+		if(feelingCount < 0) {
 			event.setFeeling("Negative");
-		} else if(positiveCount > negativeCount) {
+		} else if(feelingCount > 0) {
 			event.setFeeling("Positive");
 		} else {
 			event.setFeeling("Neutral");
 		}
-		
 	}
 	
 	public static int analyzeWord(String word) {

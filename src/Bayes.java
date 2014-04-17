@@ -80,7 +80,7 @@ public class Bayes {
 
 	public void getProbabilities(HashMap<String, Event> events) {
 		Iterator<Entry<String, Event>> iterator = events.entrySet().iterator();
-		Entry currentEvent = null;
+		Entry<String, Event> currentEvent = null;
 		double eventCount = events.size();
 		double positiveCount = 0;
 		double negativeCount = 0;

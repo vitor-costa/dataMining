@@ -1,5 +1,4 @@
 import java.util.HashSet;
-import java.util.List;
 
 
 public class FeelingsAnalyzer {
@@ -27,7 +26,7 @@ public class FeelingsAnalyzer {
 	}
 
 	public void setPositiveWords(String[] positiveWords) {
-		positiveWords = positiveWords;
+		this.positiveWords = positiveWords;
 	}
 
 	public String[] getNegativeWords() {
@@ -35,7 +34,7 @@ public class FeelingsAnalyzer {
 	}
 
 	public void setNegativeWords(String[] negativeWords) {
-		negativeWords = negativeWords;
+		this.negativeWords = negativeWords;
 	}
 	
 	public void feedPositiveWords() {
